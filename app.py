@@ -6,9 +6,9 @@ from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_google_genai import ChatGoogleGenerativeAI
-from langchain.chains import create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
 from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 
 # ──────────────────────────────────────────────
 # Config & Secrets
@@ -136,7 +136,6 @@ if "doc_name" not in st.session_state:
 def build_rag_chain(vector_db):
     llm = ChatGoogleGenerativeAI(
         model="gemini-2.5-flash",
-
         temperature=0.3,
         google_api_key=GOOGLE_API_KEY,
     )
@@ -164,9 +163,24 @@ Retrieved document context:
         ("system", system_prompt),
         ("human", "{input}"),
     ])
-    qa_chain = create_stuff_documents_chain(llm, prompt)
+
     retriever = vector_db.as_retriever(search_kwargs={"k": 4})
-    return create_retrieval_chain(retriever, qa_chain)
+
+    def format_docs(docs):
+        return "\n\n".join(doc.page_content for doc in docs)
+
+    # LCEL chain: retrieve docs, format context, run LLM
+    # Returns dict with keys: "context" (list of docs), "input" (str), "answer" (str)
+    rag_chain_from_docs = (
+        RunnablePassthrough.assign(context=lambda x: format_docs(x["context"]))
+        | prompt
+        | llm
+        | StrOutputParser()
+    )
+
+    return RunnableParallel(
+        {"context": retriever, "input": RunnablePassthrough()}
+    ).assign(answer=rag_chain_from_docs)
 
 
 @st.cache_resource(show_spinner=False)
