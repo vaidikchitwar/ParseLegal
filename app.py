@@ -390,7 +390,7 @@ Retrieved document context:
     )
 
     return RunnableParallel(
-        {"context": retriever, "input": RunnablePassthrough()}
+        {"context": lambda x: retriever.invoke(x["input"]), "input": lambda x: x["input"]}
     ).assign(answer=rag_chain_from_docs)
 
 
