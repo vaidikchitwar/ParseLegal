@@ -3,9 +3,8 @@ import tempfile
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint, ChatHuggingFace
 from langchain_chroma import Chroma
-from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
@@ -14,7 +13,17 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 # Config & Secrets
 # ──────────────────────────────────────────────
 load_dotenv()
-HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
+def get_hf_token():
+    try:
+        if "HF_TOKEN" in st.secrets:
+            return st.secrets["HF_TOKEN"]
+        if "HUGGINGFACEHUB_API_TOKEN" in st.secrets:
+            return st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+    except Exception:
+        pass
+    return os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
+
+HF_TOKEN = get_hf_token()
 DB_PATH = "./chroma_db"
 
 # ──────────────────────────────────────────────
@@ -345,12 +354,14 @@ if "doc_name" not in st.session_state:
 # Helpers
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
-    llm = ChatOpenAI(
-        model="Qwen/Qwen2.5-7B-Instruct",
+    llm_engine = HuggingFaceEndpoint(
+        repo_id="Qwen/Qwen2.5-7B-Instruct",
+        task="text-generation",
+        max_new_tokens=512,
         temperature=0.3,
-        api_key=HF_TOKEN,
-        base_url="https://api-inference.huggingface.co/v1",
+        huggingfacehub_api_token=HF_TOKEN,
     )
+    llm = ChatHuggingFace(llm=llm_engine)
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
 
 Analyse the provided document excerpts and answer the user's question thoroughly, referencing:
