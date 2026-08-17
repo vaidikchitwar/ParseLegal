@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_openai import ChatOpenAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough
@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 # Config & Secrets
 # ──────────────────────────────────────────────
 load_dotenv()
-GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
+XAI_API_KEY = os.getenv("XAI_API_KEY", "")
 DB_PATH = "./chroma_db"
 
 # ──────────────────────────────────────────────
@@ -345,10 +345,11 @@ if "doc_name" not in st.session_state:
 # Helpers
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
-    llm = ChatGoogleGenerativeAI(
-        model="gemini-2.5-flash",
+    llm = ChatOpenAI(
+        model="grok-3-mini-fast",
         temperature=0.3,
-        google_api_key=GOOGLE_API_KEY,
+        api_key=XAI_API_KEY,
+        base_url="https://api.x.ai/v1",
     )
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
 
@@ -552,7 +553,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    st.caption("Powered by Gemini 2.5 Flash · LangChain · ChromaDB")
+    st.caption("Powered by Grok · LangChain · ChromaDB")
 
 
 # ──────────────────────────────────────────────
