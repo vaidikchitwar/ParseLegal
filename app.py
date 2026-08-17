@@ -14,7 +14,7 @@ from langchain_core.runnables import RunnableParallel, RunnablePassthrough
 # Config & Secrets
 # ──────────────────────────────────────────────
 load_dotenv()
-XAI_API_KEY = os.getenv("XAI_API_KEY", "")
+HF_TOKEN = os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
 DB_PATH = "./chroma_db"
 
 # ──────────────────────────────────────────────
@@ -346,10 +346,10 @@ if "doc_name" not in st.session_state:
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
     llm = ChatOpenAI(
-        model="grok-3-mini-fast",
+        model="Qwen/Qwen2.5-7B-Instruct",
         temperature=0.3,
-        api_key=XAI_API_KEY,
-        base_url="https://api.x.ai/v1",
+        api_key=HF_TOKEN,
+        base_url="https://api-inference.huggingface.co/v1",
     )
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
 
@@ -553,7 +553,7 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-    st.caption("Powered by Grok · LangChain · ChromaDB")
+    st.caption("Powered by Hugging Face · LangChain · ChromaDB")
 
 
 # ──────────────────────────────────────────────
