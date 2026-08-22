@@ -8,7 +8,6 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
-from huggingface_hub import InferenceClient
 
 # ──────────────────────────────────────────────
 # Config & Secrets
@@ -355,23 +354,35 @@ if "doc_name" not in st.session_state:
 # Helpers
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
-    hf_client = InferenceClient(
-        model="google/gemma-2-2b-it",
-        token=HF_TOKEN,
-    )
+    import requests as _requests
+
+    HF_MODEL = "google/gemma-2-2b-it"
+    HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}/v1/chat/completions"
 
     def call_hf_llm(prompt_value):
-        """Call Hugging Face Inference API directly with the formatted prompt."""
+        """Call Hugging Face Inference API directly via HTTP, bypassing provider routing."""
         messages = []
         for msg in prompt_value.to_messages():
             role = "user" if msg.type == "human" else ("system" if msg.type == "system" else "assistant")
             messages.append({"role": role, "content": msg.content})
-        response = hf_client.chat_completion(
-            messages=messages,
-            max_tokens=1024,
-            temperature=0.3,
+
+        resp = _requests.post(
+            HF_API_URL,
+            headers={
+                "Authorization": f"Bearer {HF_TOKEN}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "model": HF_MODEL,
+                "messages": messages,
+                "max_tokens": 1024,
+                "temperature": 0.3,
+            },
+            timeout=120,
         )
-        return response.choices[0].message.content
+        resp.raise_for_status()
+        data = resp.json()
+        return data["choices"][0]["message"]["content"]
 
     llm = RunnableLambda(call_hf_llm)
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
