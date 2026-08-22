@@ -8,22 +8,21 @@ from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
 from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
+from langchain_groq import ChatGroq
 
 # ──────────────────────────────────────────────
 # Config & Secrets
 # ──────────────────────────────────────────────
 load_dotenv()
-def get_hf_token():
+def get_groq_api_key():
     try:
-        if "HF_TOKEN" in st.secrets:
-            return st.secrets["HF_TOKEN"]
-        if "HUGGINGFACEHUB_API_TOKEN" in st.secrets:
-            return st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+        if "GROQ_API_KEY" in st.secrets:
+            return st.secrets["GROQ_API_KEY"]
     except Exception:
         pass
-    return os.getenv("HF_TOKEN") or os.getenv("HUGGINGFACEHUB_API_TOKEN", "")
+    return os.getenv("GROQ_API_KEY", "")
 
-HF_TOKEN = get_hf_token()
+GROQ_API_KEY = get_groq_api_key()
 DB_PATH = "./chroma_db"
 
 # ──────────────────────────────────────────────
@@ -354,45 +353,11 @@ if "doc_name" not in st.session_state:
 # Helpers
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
-    import requests as _requests
-
-    HF_MODEL = "google/gemma-2-2b-it"
-    HF_API_URL = f"https://api-inference.huggingface.co/models/{HF_MODEL}/v1/chat/completions"
-
-    def call_hf_llm(prompt_value):
-        """Call Hugging Face Inference API directly via HTTP, bypassing provider routing."""
-        messages = []
-        for msg in prompt_value.to_messages():
-            role = "user" if msg.type == "human" else ("system" if msg.type == "system" else "assistant")
-            messages.append({"role": role, "content": msg.content})
-
-        import time
-        max_retries = 5
-        for attempt in range(max_retries):
-            try:
-                resp = _requests.post(
-                    HF_API_URL,
-                    headers={
-                        "Authorization": f"Bearer {HF_TOKEN}",
-                        "Content-Type": "application/json",
-                    },
-                    json={
-                        "model": HF_MODEL,
-                        "messages": messages,
-                        "max_tokens": 1024,
-                        "temperature": 0.3,
-                    },
-                    timeout=120,
-                )
-                resp.raise_for_status()
-                data = resp.json()
-                return data["choices"][0]["message"]["content"]
-            except _requests.exceptions.RequestException as e:
-                if attempt == max_retries - 1:
-                    raise e
-                time.sleep(2 ** attempt)
-
-    llm = RunnableLambda(call_hf_llm)
+    llm = ChatGroq(
+        model_name="llama3-8b-8192",
+        temperature=0.3,
+        groq_api_key=GROQ_API_KEY,
+    )
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
 
 Analyse the provided document excerpts and answer the user's question thoroughly, referencing:
