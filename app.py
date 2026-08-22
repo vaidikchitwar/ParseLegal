@@ -354,7 +354,7 @@ if "doc_name" not in st.session_state:
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
     llm = ChatGroq(
-        model_name="llama3-8b-8192",
+        model_name="openai/gpt-oss-20b",
         temperature=0.3,
         groq_api_key=GROQ_API_KEY,
     )
