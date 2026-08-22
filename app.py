@@ -3,11 +3,12 @@ import tempfile
 import streamlit as st
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings, HuggingFaceEndpoint, ChatHuggingFace
+from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
+from huggingface_hub import InferenceClient
 
 # ──────────────────────────────────────────────
 # Config & Secrets
@@ -354,14 +355,25 @@ if "doc_name" not in st.session_state:
 # Helpers
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
-    llm_engine = HuggingFaceEndpoint(
-        repo_id="Qwen/Qwen2.5-7B-Instruct",
-        task="text-generation",
-        max_new_tokens=512,
-        temperature=0.3,
-        huggingfacehub_api_token=HF_TOKEN,
+    hf_client = InferenceClient(
+        model="mistralai/Mistral-7B-Instruct-v0.3",
+        token=HF_TOKEN,
     )
-    llm = ChatHuggingFace(llm=llm_engine)
+
+    def call_hf_llm(prompt_value):
+        """Call Hugging Face Inference API directly with the formatted prompt."""
+        messages = []
+        for msg in prompt_value.to_messages():
+            role = "user" if msg.type == "human" else ("system" if msg.type == "system" else "assistant")
+            messages.append({"role": role, "content": msg.content})
+        response = hf_client.chat_completion(
+            messages=messages,
+            max_tokens=1024,
+            temperature=0.3,
+        )
+        return response.choices[0].message.content
+
+    llm = RunnableLambda(call_hf_llm)
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
 
 Analyse the provided document excerpts and answer the user's question thoroughly, referencing:
