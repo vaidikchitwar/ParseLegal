@@ -356,7 +356,7 @@ if "doc_name" not in st.session_state:
 # ──────────────────────────────────────────────
 def build_rag_chain(vector_db):
     hf_client = InferenceClient(
-        model="mistralai/Mistral-7B-Instruct-v0.3",
+        model="google/gemma-2-2b-it",
         token=HF_TOKEN,
     )
 
