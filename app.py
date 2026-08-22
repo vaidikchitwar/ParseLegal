@@ -366,23 +366,31 @@ def build_rag_chain(vector_db):
             role = "user" if msg.type == "human" else ("system" if msg.type == "system" else "assistant")
             messages.append({"role": role, "content": msg.content})
 
-        resp = _requests.post(
-            HF_API_URL,
-            headers={
-                "Authorization": f"Bearer {HF_TOKEN}",
-                "Content-Type": "application/json",
-            },
-            json={
-                "model": HF_MODEL,
-                "messages": messages,
-                "max_tokens": 1024,
-                "temperature": 0.3,
-            },
-            timeout=120,
-        )
-        resp.raise_for_status()
-        data = resp.json()
-        return data["choices"][0]["message"]["content"]
+        import time
+        max_retries = 5
+        for attempt in range(max_retries):
+            try:
+                resp = _requests.post(
+                    HF_API_URL,
+                    headers={
+                        "Authorization": f"Bearer {HF_TOKEN}",
+                        "Content-Type": "application/json",
+                    },
+                    json={
+                        "model": HF_MODEL,
+                        "messages": messages,
+                        "max_tokens": 1024,
+                        "temperature": 0.3,
+                    },
+                    timeout=120,
+                )
+                resp.raise_for_status()
+                data = resp.json()
+                return data["choices"][0]["message"]["content"]
+            except _requests.exceptions.RequestException as e:
+                if attempt == max_retries - 1:
+                    raise e
+                time.sleep(2 ** attempt)
 
     llm = RunnableLambda(call_hf_llm)
     system_prompt = """You are ParseLegal, an expert Indian Legal Assistant.
