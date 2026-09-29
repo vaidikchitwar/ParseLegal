@@ -1,4 +1,6 @@
-streamlit==1.60.0
+fastapi
+python-multipart
+uvicorn
 langchain==0.3.27
 langchain-community==0.3.31
 langchain-core==0.3.80
