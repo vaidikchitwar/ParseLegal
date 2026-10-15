@@ -1,19 +1,25 @@
 import os
 import tempfile
+
 import streamlit as st
 from dotenv import load_dotenv
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_chroma import Chroma
-from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser
-from langchain_core.runnables import RunnableParallel, RunnablePassthrough, RunnableLambda
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import (
+    RunnableParallel,
+    RunnablePassthrough,
+)
 from langchain_groq import ChatGroq
+from langchain_huggingface import HuggingFaceEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 # ──────────────────────────────────────────────
 # Config & Secrets
 # ──────────────────────────────────────────────
 load_dotenv()
+
+
 def get_groq_api_key():
     try:
         if "GROQ_API_KEY" in st.secrets:
@@ -21,6 +27,7 @@ def get_groq_api_key():
     except Exception:
         pass
     return os.getenv("GROQ_API_KEY", "")
+
 
 GROQ_API_KEY = get_groq_api_key()
 DB_PATH = "./chroma_db"
@@ -38,7 +45,8 @@ st.set_page_config(
 # ──────────────────────────────────────────────
 # Custom CSS — Full Design System
 # ──────────────────────────────────────────────
-st.markdown("""
+st.markdown(
+    """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
 
@@ -334,7 +342,9 @@ hr {
     font-size: 0.72rem !important;
 }
 </style>
-""", unsafe_allow_html=True)
+""",
+    unsafe_allow_html=True,
+)
 
 # ──────────────────────────────────────────────
 # Session State
@@ -378,10 +388,12 @@ GUIDELINES:
 Retrieved document context:
 {context}"""
 
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
+    prompt = ChatPromptTemplate.from_messages(
+        [
+            ("system", system_prompt),
+            ("human", "{input}"),
+        ]
+    )
 
     retriever = vector_db.as_retriever(search_kwargs={"k": 4})
 
@@ -398,7 +410,10 @@ Retrieved document context:
     )
 
     return RunnableParallel(
-        {"context": lambda x: retriever.invoke(x["input"]), "input": lambda x: x["input"]}
+        {
+            "context": lambda x: retriever.invoke(x["input"]),
+            "input": lambda x: x["input"],
+        }
     ).assign(answer=rag_chain_from_docs)
 
 
@@ -424,12 +439,15 @@ def ingest_file(uploaded_file) -> Chroma:
         ext = suffix.lower()
         if ext == ".pdf":
             from langchain_community.document_loaders import PyPDFLoader
+
             loader = PyPDFLoader(tmp_path)
         elif ext in (".txt", ".md"):
             from langchain_community.document_loaders import TextLoader
+
             loader = TextLoader(tmp_path, encoding="utf-8")
         elif ext == ".docx":
             from langchain_community.document_loaders import Docx2txtLoader
+
             loader = Docx2txtLoader(tmp_path)
         else:
             raise ValueError(f"Unsupported file type: {ext}")
@@ -456,7 +474,9 @@ def ingest_file(uploaded_file) -> Chroma:
     # Guard: filter empty chunks
     chunks = [c for c in chunks if c.page_content and c.page_content.strip()]
     if not chunks:
-        raise ValueError("Document was loaded but produced no usable text chunks. Please try a different file.")
+        raise ValueError(
+            "Document was loaded but produced no usable text chunks. Please try a different file."
+        )
 
     return Chroma.from_documents(documents=chunks, embedding=embeddings)
 
@@ -526,15 +546,13 @@ with st.sidebar:
         st.markdown(
             '<div class="status-badge status-indexed">'
             '<span class="status-dot"></span> Status: Indexed'
-            '</div>',
+            "</div>",
             unsafe_allow_html=True,
         )
         st.markdown(f"**Document:** {st.session_state.doc_name}")
     else:
         st.markdown(
-            '<div class="status-badge status-waiting">'
-            '○ No document loaded'
-            '</div>',
+            '<div class="status-badge status-waiting">○ No document loaded</div>',
             unsafe_allow_html=True,
         )
 
@@ -553,7 +571,7 @@ with st.sidebar:
         st.markdown('<div class="suggestion-btn">', unsafe_allow_html=True)
         if st.button(s, key=f"sug_{s[:20]}", use_container_width=True):
             st.session_state["prefill"] = s
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown("</div>", unsafe_allow_html=True)
 
     st.divider()
     if st.button("Clear Chat", use_container_width=True):
@@ -595,9 +613,9 @@ else:
                             f'<div class="source-card">'
                             f'<div class="source-label">'
                             f'<span class="citation-badge">Page {page}</span> Excerpt {i}'
-                            f'</div>'
-                            f'{snippet}…'
-                            f'</div>',
+                            f"</div>"
+                            f"{snippet}…"
+                            f"</div>",
                             unsafe_allow_html=True,
                         )
 
@@ -623,22 +641,28 @@ else:
                         with st.expander("Source References", expanded=False):
                             for i, src in enumerate(sources, 1):
                                 page = src.metadata.get("page", "—")
-                                snippet = src.page_content[:320].strip().replace("\n", " ")
+                                snippet = (
+                                    src.page_content[:320].strip().replace("\n", " ")
+                                )
                                 st.markdown(
                                     f'<div class="source-card">'
                                     f'<div class="source-label">'
                                     f'<span class="citation-badge">Page {page}</span> Excerpt {i}'
-                                    f'</div>'
-                                    f'{snippet}…'
-                                    f'</div>',
+                                    f"</div>"
+                                    f"{snippet}…"
+                                    f"</div>",
                                     unsafe_allow_html=True,
                                 )
-                    st.session_state.messages.append({
-                        "role": "assistant",
-                        "content": answer,
-                        "sources": sources,
-                    })
+                    st.session_state.messages.append(
+                        {
+                            "role": "assistant",
+                            "content": answer,
+                            "sources": sources,
+                        }
+                    )
                 except Exception as e:
                     err = f"Error: {e}"
                     st.error(err)
-                    st.session_state.messages.append({"role": "assistant", "content": err})
+                    st.session_state.messages.append(
+                        {"role": "assistant", "content": err}
+                    )
