@@ -10,7 +10,9 @@
 ![Docker](https://img.shields.io/badge/Docker-Containerized-2496ED?logo=docker&logoColor=white)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)
 
-[**Live Demo Placeholder**](https://parselegal.demo.app) • [**Video Walkthrough Placeholder**](https://youtube.com) • [**Report a Bug**](https://github.com/vaidikchitwar/ParseLegal/issues)
+[![Live Demo](https://img.shields.io/badge/Live_Demo-Streamlit_Cloud-FF4B4B?style=for-the-badge&logo=streamlit&logoColor=white)](https://share.streamlit.io)
+
+[**Live Streamlit Cloud Deployment**](https://share.streamlit.io) • [**1-Click Deploy to Streamlit**](https://share.streamlit.io/deploy?repository=vaidikchitwar/ParseLegal&branch=chore/recruiter-ready&mainModule=app.py) • [**Report a Bug**](https://github.com/vaidikchitwar/ParseLegal/issues)
 
 ---
 
