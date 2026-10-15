@@ -7,8 +7,10 @@ Usage:
     python ingest.py agreement.docx
     python ingest.py notice.txt
 """
+
 import os
 import sys
+
 from langchain_chroma import Chroma
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -20,12 +22,15 @@ def get_loader(file_path: str):
     ext = os.path.splitext(file_path)[1].lower()
     if ext == ".pdf":
         from langchain_community.document_loaders import PyPDFLoader
+
         return PyPDFLoader(file_path)
     elif ext in (".txt", ".md"):
         from langchain_community.document_loaders import TextLoader
+
         return TextLoader(file_path, encoding="utf-8")
     elif ext == ".docx":
         from langchain_community.document_loaders import Docx2txtLoader
+
         return Docx2txtLoader(file_path)
     else:
         raise ValueError(f"Unsupported file type '{ext}'. Supported: {SUPPORTED}")

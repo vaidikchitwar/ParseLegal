@@ -1,0 +1,20 @@
+[project]
+name = "parselegal"
+version = "0.2.0"
+description = "Deterministic Legal RAG Engine with Cyclic Self-Correction"
+readme = "README.md"
+requires-python = ">=3.10"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "W"]
+ignore = ["E501"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-ra -q"
+testpaths = ["tests"]
+pythonpath = ["."]
